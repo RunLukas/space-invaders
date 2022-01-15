@@ -18,8 +18,8 @@ class Enemy{
 	constructor(x, y){
 		this.x = x;
 		this.y = y;
-		this.enemies = new Image();
-		this.enemies.src = "enemy.png";
+		this.enemy = new Image();
+		this.enemy.src = "enemy.png";
 	}
 }
 
@@ -31,11 +31,22 @@ let player;
 
 let bullets = [];
 
-let enemies = new Array(5).fill(0).map(() => new Array(11).fill(0));;
+let numOfRows = 5;
+let numOfColumns = 8;
+
+//let enemies = new Array(5).fill(0).map(() => new Array(11).fill(0));
+let enemies = Array.from(Array(numOfRows), () => new Array(numOfColumns));
 
 let enemiesMovement = false;
 let enemiesCounterX = 0;
 let enemiesCounterY = 0;
+
+
+let velX = 0,
+	speed = 3,
+	friction = 0.3,
+	keys=[],
+	checkKeyUp = true;
 
 function initBackground(){
 	//set backround color of canvas to gray
@@ -64,22 +75,30 @@ function drawBackground () {
 }
 
 function playerInput (e) {
-	console.log(e.keyCode);
-
 	//check for pressed buttons
 	//"a"
-	if (e.keyCode == "65") 
-		player.x -= 5;
+	if (keys[65]){
+		if(player.x>25){
+			player.x -= 2;
+		}
+	}
 
 	//"d"
-	else if (e.keyCode == "68") 
-		player.x += 5;
+	if (keys[68]){
+		if(player.x<canvas.width-25) {
+			player.x += 2;
+		}
+	}
 
 	//"space"
-	else if (e.keyCode == "32") {
+	if (keys[32]) {
 		bullets.push(new Bullet(player.x, player.y));
 		updateBullets();
+		keys[32] = false;
 	}
+
+	velX *= friction;
+    player.x += velX;
 }
 
 function drawPlayer () {
@@ -95,10 +114,8 @@ function detectCollision(i) {
 			bullets[i].x + 2 > enemies[j][k].x &&
             bullets[i].y < enemies[j][k].y + 20 && 
 			bullets[i].y + 2 > enemies[j][k].y){
-				console.log(enemies[j].length)
                 enemies[j].splice(k, 1);
 				bullets.splice(i, 1);
-				//console.log(enemies[j].length)
 				return;
 			}
 		}
@@ -122,39 +139,40 @@ function updateBullets () {
 		
 	}
 }
+
 function updateEnemies(){
 	if(enemies[0][enemies[0].length-1].x+20 > canvas.width){
 		enemiesMovement = true;
-		for(let i = 0; i < 5; i++){
-			for(let j = 0; j < 11; j++){
+		for(let i = 0; i < numOfRows; i++){
+			for(let j = 0; j < enemies[i].length; j++){
 				if(enemies[i][j] === undefined) break;
-				enemies[i][j].y += 5;
+				enemies[i][j].y += 10;
 			}
 		}
 	}
 	if(enemies[0][0].x-20 < 0){
 		enemiesMovement = false;
-		for(let i = 0; i < 5; i++){
-			for(let j = 0; j < 11; j++){
+		for(let i = 0; i < numOfRows; i++){
+			for(let j = 0; j < enemies[i].length; j++){
 				if(enemies[i][j] === undefined) break;
-				enemies[i][j].y += 5;
+				enemies[i][j].y += 10;
 			}
 		}
 	}
 	if(enemiesMovement == false){
-		for(let i = 0; i < 5; i++){
-			for(let j = 0; j < 11; j++){
+		for(let i = 0; i < numOfRows; i++){
+			for(let j = 0; j < enemies[i].length; j++){
 				if(enemies[i][j] === undefined) break;
-				enemies[i][j].x += 0.15;
+				enemies[i][j].x += 0.20;
 				
 			}
 		}
 	}
 	if(enemiesMovement == true){
-		for(let i = 0; i < 5; i++){
-			for(let j = 0; j < 11; j++){
+		for(let i = 0; i < numOfRows; i++){
+			for(let j = 0; j < enemies[i].length; j++){
 				if(enemies[i][j] === undefined) break;
-				enemies[i][j].x -= 0.15;
+				enemies[i][j].x -= 0.20;
 			}
 		}
 	}
@@ -164,20 +182,21 @@ let isEmpty = true;
 
 function drawEnemies(){
 	//creates new enemies
+	
 	if(isEmpty){
-		for(let i = 0; i < 5; i++){
-			for(let j = 0; j < 11; j++){
+		for(let i = 0; i < numOfRows; i++){
+			for(let j = 0; j < numOfColumns; j++){
 				enemies[i][j] = new Enemy(43*j+30, i*35+50);
-				buffer.drawImage(enemies[i][j].enemies, enemies[i][j].x-20, enemies[i][j].y, 40, 20);
-				if(i == 4 && j == 10) isEmpty = false;
+				buffer.drawImage(enemies[i][j].enemy, enemies[i][j].x-20, enemies[i][j].y, 40, 20);
+				if(i == numOfRows-1 && j == numOfColumns-1) isEmpty = false;
 			}
 		}
 	}
 
 	//draw all still existing enemies
-	for(let i = 0; i < 5; i++){
+	for(let i = 0; i < numOfRows; i++){
 		for(let j = 0; j < enemies[i].length; j++){
-			buffer.drawImage(enemies[i][j].enemies, enemies[i][j].x-20, enemies[i][j].y, 40, 20);
+			buffer.drawImage(enemies[i][j].enemy, enemies[i][j].x-20, enemies[i][j].y, 40, 20);
 		}
 	}
 	updateEnemies();
@@ -205,12 +224,18 @@ function draw () {
 	drawPlayer();
 	drawEnemies();	
 	drawBullets();
+	playerInput();
 	window.requestAnimationFrame(draw);
 	
 }
 
 function init () {
-	document.addEventListener('keydown', playerInput);
+	document.addEventListener('keydown', function (e) {
+		keys[e.keyCode] = true;
+	});
+	document.addEventListener('keyup', function (e) {
+		keys[e.keyCode] = false;
+	});
 	initElements(); 
 	initBackground();
 	player = new Player(canvas.width/2, canvas.height-30, "ship.png");//"https://cdn.onlinewebfonts.com/svg/img_3969.png");
