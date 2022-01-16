@@ -2,3 +2,66 @@ canvas {
 	margin: auto;
 	display: block;
 }
+
+
+.divAlign{
+	margin: auto;
+	text-align: center;
+}
+
+button{
+	border: 0;
+	text-align: center;
+	display: inline-block;
+	padding: 14px;
+	width: 180px;
+	margin: 7px;
+	color: #ffffff;
+	background-color: rgb(255, 81, 0);
+	border-radius: 8px;
+	font-family: "proxima-nova-soft", sans-serif;
+	font-weight: 600;
+	text-decoration: none;
+	transition: box-shadow 200ms ease-out;
+}
+
+table{
+	margin-left: auto;
+	margin-right: auto;
+}
+
+td:nth-child(even){
+	padding-right: 10px;
+}
+
+td{
+	padding-left: 5px;
+	font-weight: bold;
+	font-size: 16px;
+}
+
+.center{
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	width: 50%;
+}
+
+.logo{
+	width: 30%;
+}
+
+.levelText{
+	font-weight: bold;
+	color:rgb(255, 81, 0);
+	margin-left: 7%;
+}
+
+.levelText span:nth-child(even){
+	padding-right: 7%;
+}
+
+.lost{
+	color:red;
+	font-size: 30px;
+}

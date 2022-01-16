@@ -34,6 +34,10 @@ let bullets = [];
 let numOfRows = 5;
 let numOfColumns = 8;
 
+let keybindLeft = 65;
+let keybindRight = 68;
+let keybindShoot = 32;
+
 //let enemies = new Array(5).fill(0).map(() => new Array(11).fill(0));
 let enemies = Array.from(Array(numOfRows), () => new Array(numOfColumns));
 
@@ -41,6 +45,13 @@ let enemiesMovement = false;
 let enemiesCounterX = 0;
 let enemiesCounterY = 0;
 
+let delay=400;
+let lastClick=0;
+
+let levelCounter = 1;
+let score = 0;
+let highScore = 0;
+let stopGame = false;
 
 let velX = 0,
 	speed = 3,
@@ -74,31 +85,69 @@ function drawBackground () {
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
-function playerInput (e) {
+let keyBindCounter = 0;
+
+function waitingKeyPress(){
+	return new Promise((resolve) => {
+		document.addEventListener("keydown", onKeyHandler);
+		function onKeyHandler(e){
+			if(keyBindCounter == 0) {keybindLeft = e.keyCode; keyBindCounter++;}
+			else if(keyBindCounter == 1) {keybindRight = e.keyCode; keyBindCounter++;}
+			else if(keyBindCounter == 2) {keybindShoot = e.keyCode; keyBindCounter = 0;}
+			document.removeEventListener('keydown', onKeyHandler);
+			resolve();
+		}
+	});
+}
+
+async function changeKeybinds(){
+	document.getElementById("keybinds").disabled = true;
+	document.getElementById("leftText").style.color = "red";
+	await waitingKeyPress();
+	console.log(keybindLeft);
+	document.getElementById("left").innerText =  String.fromCharCode(keybindLeft);
+	document.getElementById("leftText").style.color = "black";
+
+	document.getElementById("rightText").style.color = "red";
+	await waitingKeyPress();
+	console.log(keybindRight);
+	document.getElementById("right").innerText = String.fromCharCode(keybindRight);
+	document.getElementById("rightText").style.color = "black";
+
+	document.getElementById("shootText").style.color = "red";
+	await waitingKeyPress();
+	console.log(keybindShoot);
+	document.getElementById("shoot").innerText = String.fromCharCode(keybindShoot);
+	document.getElementById("shootText").style.color = "black";
+	document.getElementById("keybinds").disabled = false;
+}
+
+function playerInput () {
 	//check for pressed buttons
-	//"a"
-	if (keys[65]){
+	//left
+	if (keys[keybindLeft]){
 		if(player.x>25){
 			player.x -= 2;
 		}
 	}
 
-	//"d"
-	if (keys[68]){
+	//right
+	if (keys[keybindRight]){
 		if(player.x<canvas.width-25) {
 			player.x += 2;
 		}
 	}
 
-	//"space"
-	if (keys[32]) {
-		bullets.push(new Bullet(player.x, player.y));
-		updateBullets();
-		keys[32] = false;
+	//shoot
+	if (keys[keybindShoot]) {
+		if(lastClick<=(Date.now()-delay))
+        {
+            lastClick=Date.now();
+            bullets.push(new Bullet(player.x, player.y));
+            updateBullets();
+        }
+		keys[keybindShoot] = false;
 	}
-
-	velX *= friction;
-    player.x += velX;
 }
 
 function drawPlayer () {
@@ -116,6 +165,8 @@ function detectCollision(i) {
 			bullets[i].y + 2 > enemies[j][k].y){
                 enemies[j].splice(k, 1);
 				bullets.splice(i, 1);
+				score++;
+				document.getElementById("score").innerText =  score;
 				return;
 			}
 		}
@@ -163,7 +214,7 @@ function updateEnemies(){
 		for(let i = 0; i < numOfRows; i++){
 			for(let j = 0; j < enemies[i].length; j++){
 				if(enemies[i][j] === undefined) break;
-				enemies[i][j].x += 0.20;
+				enemies[i][j].x += 0.70*levelCounter/2;
 				
 			}
 		}
@@ -172,17 +223,34 @@ function updateEnemies(){
 		for(let i = 0; i < numOfRows; i++){
 			for(let j = 0; j < enemies[i].length; j++){
 				if(enemies[i][j] === undefined) break;
-				enemies[i][j].x -= 0.20;
+				enemies[i][j].x -= 0.70*levelCounter/2;
 			}
+		}
+	}
+	for(let i = 0; i < numOfRows; i++){
+		for(let j = 0; j < enemies[i].length; j++){
+			if(enemies[i][j] === undefined) break;
+			if(enemies[i][j].y > canvas.height-40) stopGame = true;
 		}
 	}
 }
 
 let isEmpty = true;
+let numOfEmptyRows = 0;
 
 function drawEnemies(){
 	//creates new enemies
-	
+	for(let i = 0; i < numOfRows; i++){
+		if(enemies[i].length == 0){
+			numOfEmptyRows++;
+			if(numOfEmptyRows == numOfRows){
+				isEmpty = true;
+				levelCounter++;
+				document.getElementById("level").innerText =  levelCounter;
+			}
+		}
+	}
+	numOfEmptyRows = 0;
 	if(isEmpty){
 		for(let i = 0; i < numOfRows; i++){
 			for(let j = 0; j < numOfColumns; j++){
@@ -200,7 +268,6 @@ function drawEnemies(){
 		}
 	}
 	updateEnemies();
-	
 }
 
 function drawBullets () {
@@ -222,14 +289,26 @@ function drawBullets () {
 function draw () {
 	drawBackground();
 	drawPlayer();
-	drawEnemies();	
 	drawBullets();
+	drawEnemies();
 	playerInput();
+	document.getElementById("startGame").disabled = true;
+
+	if(stopGame == true) {
+		document.getElementById("lostText").hidden = false;
+		if(localStorage.getItem('highScoreKey') < score){
+			localStorage.setItem('highScoreKey', score);
+			document.getElementById("highScore").innerText = score;
+		}
+		
+		return;
+	}
+
 	window.requestAnimationFrame(draw);
-	
 }
 
 function init () {
+	
 	document.addEventListener('keydown', function (e) {
 		keys[e.keyCode] = true;
 	});
@@ -240,6 +319,14 @@ function init () {
 	initBackground();
 	player = new Player(canvas.width/2, canvas.height-30, "ship.png");//"https://cdn.onlinewebfonts.com/svg/img_3969.png");
 
-	//start game
-	draw();
+	drawBackground();
+	drawPlayer();
+	drawEnemies();
+
+	document.getElementById("left").innerText =  String.fromCharCode(keybindLeft);
+	document.getElementById("right").innerText = String.fromCharCode(keybindRight);
+
+	document.getElementById("level").innerText =  levelCounter;
+	document.getElementById("score").innerText =  score;
+	document.getElementById("highScore").innerText =  localStorage.getItem('highScoreKey');
 }
